@@ -1,0 +1,94 @@
+function main_european()
+% Runs each of European option Scripts (.mlx)
+% Shows all outputs (figures/tables) produced by the scripts.
+
+close all; clc;
+curdir = fileparts(mfilename('fullpath'));
+addpath(curdir);
+
+% Consistent figure windows
+set(0,'DefaultFigureWindowStyle','normal');
+set(0,'DefaultFigurePosition',[200 150 880 520]);
+
+fprintf('=== European Option Runner ===\n');
+fprintf('Start time: %s\n\n', datestr(now));
+
+%% Shared parameters:
+% Core GBM params
+S0    = 50;
+r     = 0.05;
+q     = 0.02;
+sigma = 0.30;
+
+% Strikes / maturities:
+K_main      = 50;          % main strike used in tables/plots
+K_compare   = 45;          % second strike for convergence plots
+T_short     = 60/365;      % 60-day option
+T_long      = 365/365;     % 365-day option
+n_short     = 60;          % daily stepping (60 days)
+n_long      = 365;         % daily stepping (365 days)
+
+% Grid sizes
+m_default   = 401;                   % single-run demo
+m_list_plot = 101:2:401;             % odd sizes to center S0
+m_vec_table = [201 301 401 501 601 701 801];  % table rows, if used
+
+% Black–Scholes references for K = 50
+BS_ref_60_K50 = BlackScholes(S0, K_main, r, q, T_short, sigma);
+BS_ref_365_K50 = BlackScholes(S0, K_main, r, q, T_long, sigma);
+
+% Push variables to BASE so the .mlx files can read them
+vars = {'S0','r','q','sigma','K_main','K_compare','T_short','T_long','n_short','n_long', ...
+        'm_default','m_list_plot','m_vec_table','BS_ref_60_K50','BS_ref_365_K50'};
+for i = 1:numel(vars)
+    assignin('base', vars{i}, eval(vars{i}));
+end
+
+%% Files to run (European only)
+euroFiles = { ...
+ 'European_Naive_Smoothing.mlx', ...
+ 'EuroPut_ImprovementOne.mlx', ...
+ 'EuroPut_ImprovementTwo.mlx', ...
+ 'EuroPut_ImprovementThree.mlx'};
+
+%% Helper to run in BASE 
+    function runInBaseSafe(fname)
+        fpath = fullfile(curdir, fname);
+        fprintf('>> Running %s ...\n', fname);
+        try
+            if exist(fpath,'file') ~= 2
+                error('FileNotFound: %s', fpath);
+            end
+            % Prefer Live Editor executor when available
+            if exist('matlab.internal.liveeditor.execute','file') == 2 && endsWith(fname,'.mlx','IgnoreCase',true)
+                evalin('base', sprintf('matlab.internal.liveeditor.execute(''%s'');', fpath));
+            else
+                % Fallback works in many releases
+                evalin('base', sprintf('run(''%s'')', fpath));
+            end
+            fprintf('OK: %s completed.\n\n', fname);
+        catch ME
+            fprintf('ERROR running %s\nIdentifier: %s\nMessage: %s\n\n', ...
+                    fname, ME.identifier, ME.message);
+        end
+    end
+
+%% Run all European scripts 
+fprintf('--- Running European Option Scripts ---\n\n');
+for k = 1:numel(euroFiles)
+    runInBaseSafe(euroFiles{k});
+end
+
+fprintf('All European scripts executed. End time: %s\n', datestr(now));
+
+end
+
+%% Function for BS:
+
+function put_price = BlackScholes(S, K, r, q, h, sigma)
+    d1  = (log(S./K) + (r - q + 0.5*sigma^2)*h) / (sigma*sqrt(h));
+    d2  = d1 - sigma*sqrt(h);
+    Nd1 = 0.5*(1 + erf(d1/sqrt(2)));
+    Nd2 = 0.5*(1 + erf(d2/sqrt(2)));
+    put_price = K*exp(-r*h).*(1 - Nd2) - S.*exp(-q*h).*(1 - Nd1); 
+end
