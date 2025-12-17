@@ -1,12 +1,4 @@
 function main_bermudan()
-% MAIN_BERMUDAN
-% Master runner for Bermudan option Live Scripts (.mlx)
-% - Executes each .mlx in the BASE workspace (so any `clear` inside them
-%   won't break this launcher).
-% - Shows all outputs (figures/tables) produced by the scripts.
-% - Does NOT write any CSV files.
-
-%% ---------- Housekeeping ----------
 close all; clc;
 curdir = fileparts(mfilename('fullpath'));
 addpath(curdir);
@@ -18,7 +10,7 @@ set(0,'DefaultFigurePosition',[200 150 880 520]);
 fprintf('=== Bermudan Option Runner ===\n');
 fprintf('Start time: %s\n\n', datestr(now));
 
-%% ---------- Shared parameters (exposed to BASE for the .mlx files) ----------
+%% Shared parameters 
 % Core GBM params (edit if needed)
 S0    = 50;
 r     = 0.05;
@@ -45,14 +37,13 @@ for i = 1:numel(vars)
     assignin('base', vars{i}, eval(vars{i}));
 end
 
-%% ---------- Files to run (Bermudan only) ----------
+%%  Files to run:
 bermFiles = { ...
  'Bermudan_Naive_Smoothing.mlx', ...
- 'Bermudan_approach5suggestion1.mlx', ...
- 'Bermudan_approach5suggestion2.mlx', ...
- 'Bermudan_approach6.mlx'};
+ 'BermudanPut_ImprovementOne.mlx', ...
+ 'BermudanPut_ImprovementTwo.mlx', ...
+ 'BermudanPut_ImprovementThree.mlx'};
 
-%% ---------- Helper to run in BASE (robust to `clear` inside .mlx) ----------
     function runInBaseSafe(fname)
         fpath = fullfile(curdir, fname);
         fprintf('>> Running %s ...\n', fname);
@@ -74,14 +65,12 @@ bermFiles = { ...
         end
     end
 
-%% ---------- Run all Bermudan scripts ----------
+%% Run all Bermudan scripts 
 fprintf('--- Running Bermudan Option Scripts ---\n\n');
 for k = 1:numel(bermFiles)
     runInBaseSafe(bermFiles{k});
 end
 
-%% ---------- Done ----------
 fprintf('All Bermudan scripts executed. End time: %s\n', datestr(now));
-fprintf('Figures/tables were produced by the Live Scripts (no CSV output).\n');
 
 end
